@@ -45,8 +45,9 @@ namespace TrelloMite
                     x =>
                     x.Name.Equals(project, StringComparison.InvariantCultureIgnoreCase) &&
                     x.Customer.Name.Equals(customer, StringComparison.InvariantCultureIgnoreCase));
+
             if (foundProject == null)
-                throw new ApplicationException("Project '" + project + "' for customer '" + customer + "' not found.");
+                throw new ApplicationException(string.Format("Project '{0}' for customer '{1}' not found.", project, customer));
 
             //find the matching service, if any
             Service foundService = null;

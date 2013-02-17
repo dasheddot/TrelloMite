@@ -2,18 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using TrelloNet;
-using Action = TrelloNet.Action;
+using TrelloNet.Extensions;
 
-namespace TrelloMite
+namespace TrelloMite.Trello
 {
     public class TrelloRunner : IDisposable
     {
         private readonly TrelloConfiguration _configuration;
-        private readonly Trello _trello;
+        private readonly TrelloNet.Trello _trello;
 
         public TrelloRunner(TrelloConfiguration configuration)
         {
-            _trello = new Trello(configuration.AppKey);
+            _trello = new TrelloNet.Trello(configuration.AppKey);
             _configuration = configuration;
 
             _trello.Authorize(configuration.UserToken);
@@ -27,6 +27,21 @@ namespace TrelloMite
 
         #endregion
 
+        public Board DefaultBoard
+        {
+            get
+            {
+                var boards = _trello.Boards.ForMe();
+                var board = boards.FirstOrDefault(x => x.Name.Equals(_configuration.Board, StringComparison.InvariantCultureIgnoreCase));
+                if (board == null)
+                {
+                    throw new ApplicationException("Board '" + _configuration.Board + "' not found.");
+                }
+
+                return board;
+            }
+        }
+
         public void FindTimeEntries(Action<TimeEntry> saveTimeEntryCallback)
         {
             int cardsCount = 0;
@@ -36,16 +51,7 @@ namespace TrelloMite
 
             try
             {
-                var boards = _trello.Boards.ForMe();
-                var board =
-                    boards.FirstOrDefault(
-                        x => x.Name.Equals(_configuration.Board, StringComparison.InvariantCultureIgnoreCase));
-                if (board == null)
-                {
-                    throw new ApplicationException("Board '" + _configuration.Board + "' not found.");
-                }
-
-                var allCards = _trello.Cards.ForBoard(board, BoardCardFilter.Open);
+                var allCards = _trello.Cards.ForBoard(DefaultBoard, BoardCardFilter.Open);
 
                 foreach (var card in allCards)
                 {
@@ -110,7 +116,7 @@ namespace TrelloMite
                                 try
                                 {
                                     saveTimeEntryCallback.Invoke(timeEntry);
-                                    newLine = newLine + " [mite ok]";
+                                    newLine = newLine + " [trellomite ok]";
                                     _trello.Actions.ChangeText(comment, newCommentText.Trim());
                                     Console.WriteLine(" OK.");
                                     successes++;
@@ -119,7 +125,7 @@ namespace TrelloMite
                                 }
                                 catch (Exception ex)
                                 {
-                                    newLine = newLine + " [mite failed: " + ex.Message + "]";
+                                    newLine = newLine + " [trellomite failed: " + ex.Message + "]";
                                     Console.WriteLine(" failed: " + ex.Message);
                                     fails++;
                                 }
